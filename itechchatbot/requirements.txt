@@ -1,4 +1,4 @@
-﻿Flask==3.0.3
+Flask==3.0.3
 gunicorn==23.0.0
 requests==2.32.3
 beautifulsoup4==4.13.4
@@ -7,8 +7,8 @@ sentence-transformers==2.7.0
 torch==2.5.0
 urllib3==2.4.0
 numpy==1.26.4
-# Pinning scipy to an older version that's more likely to have pre-compiled wheels
-scipy==1.10.1
+# Updated scipy to a version compatible with Python 3.13.4
+scipy==1.15.3
 MarkupSafe==2.1.5
 Jinja2==3.1.4
 itsdangerous==2.2.0
