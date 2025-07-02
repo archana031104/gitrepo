@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iTech AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Ensuring Inter font for overall aesthetics (Google Fonts loaded, fallback to generic) */
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #e2e8f0; /* Light gray background for a clean look */
+        }
+
+        .chat-container {
+            height: calc(100vh - 200px); /* Adjust height to fit screen */
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            border: 1px solid #cbd5e1; /* Subtle border for chat box */
+            padding: 15px;
+            background-color: #ffffff; /* White background for messages area */
+            border-radius: 12px; /* More rounded corners */
+            gap: 10px; /* Space between messages */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Soft shadow for depth */
+        }
+
+        .message-text {
+            white-space: pre-line; /* Preserves newlines from Flask response */
+            padding: 5px 0; /* Add some vertical padding */
+            line-height: 1.5; /* Improve readability */
+        }
+
+        /* Custom styles for rounded corners and shadows, reinforcing Tailwind but ensuring consistency */
+        .rounded-lg {
+            border-radius: 0.75rem; /* Slightly larger rounded corners for overall elements */
+        }
+
+        .shadow-lg {
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.08); /* More pronounced shadow */
+        }
+
+        /* Adjustments for button hover/active effects */
+        .bg-blue-600 {
+            background-color: #2563eb; /* Primary blue */
+        }
+
+        .hover\:bg-blue-700:hover {
+            background-color: #1d4ed8; /* Darker blue on hover */
+        }
+
+        .focus\:ring-blue-500:focus {
+            --tw-ring-color: #3b82f6; /* Blue ring on focus */
+        }
+
+        /* Specific message bubble styling for better visual separation */
+        .user-message-bubble {
+            background-color: #3b82f6; /* Brighter blue for user messages */
+            color: white;
+            border-radius: 0.75rem; /* More rounded */
+            border-bottom-right-radius: 0.25rem; /* Slight asymmetry */
+            padding: 0.85rem 1.2rem; /* More padding */
+            max-width: 80%;
+            word-wrap: break-word;
+            align-self: flex-end; /* Align to the right */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow on bubbles */
+        }
+
+        .bot-message-bubble {
+            background-color: #e0f2fe; /* Light blue for bot messages */
+            color: #1a202c; /* Darker text for readability */
+            border-radius: 0.75rem; /* More rounded */
+            border-bottom-left-radius: 0.25rem; /* Slight asymmetry */
+            padding: 0.85rem 1.2rem; /* More padding */
+            max-width: 80%;
+            word-wrap: break-word;
+            align-self: flex-start; /* Align to the left */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08); /* Subtle shadow on bubbles */
+        }
+
+        /* Input and button styling */
+        .input-field {
+            padding: 0.85rem 1.2rem; /* More padding */
+            border: 1px solid #9ca3af; /* Darker border */
+            border-radius: 9999px; /* Fully rounded pill shape */
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            flex-grow: 1; /* Allow input to fill available space */
+        }
+
+        .input-field:focus {
+            border-color: #2563eb; /* Blue focus border */
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4); /* Larger, softer focus shadow */
+        }
+
+        .send-button {
+            padding: 0.85rem 1.8rem; /* More padding for a bolder button */
+            background-color: #2563eb; /* Primary blue */
+            color: white;
+            border: none;
+            border-radius: 9999px; /* Fully rounded pill shape */
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600; /* Bolder text */
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            white-space: nowrap; /* Prevent button text from wrapping */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); /* Shadow for button */
+        }
+
+        .send-button:hover {
+            background-color: #1d4ed8; /* Darker blue on hover */
+            transform: translateY(-2px); /* Lift effect on hover */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* More prominent shadow on hover */
+        }
+
+        .send-button:active {
+            transform: translateY(0); /* Press effect */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .max-w-4xl {
+                max-width: 100%;
+            }
+
+            .chat-container {
+                height: calc(100vh - 180px); /* Adjust height for smaller screens */
+            }
+
+            .flex-gap-2 { /* For form, change to column layout on small screens */
+                flex-direction: column;
+                gap: 0.75rem; /* Slightly more space for touch targets */
+            }
+
+            .input-field, .send-button {
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+        
+        /* New style for the main heading (no bullet points) */
+        .main-heading-no-bullets ul {
+            list-style-type: none; /* Remove bullet points */
+            padding-left: 0; /* Remove default padding for ul */
+            margin-left: 0; /* Remove default margin for ul */
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold text-center mb-8 text-blue-600">iTech AI Assistant</h1>
+
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="chat-container mb-6" id="chatContainer">
+                    <div class="space-y-4" id="chatMessages">
+                        <div class="flex items-start">
+                            <div class="bot-message-bubble">
+                                <p class="message-text">
+                                    Hello! I'm your iTech AI Assistant 🤖. I'm here to provide comprehensive insights into our innovative services ✨, cutting-edge products 🚀, and tailored solutions 🤝. How may I assist you today?
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="searchForm" class="flex gap-2 flex-gap-2">
+                    <input type="text" id="query" name="query"
+                        class="input-field"
+                        placeholder="Ask about our services, expertise, or solutions...">
+                    <button type="submit" class="send-button">
+                        Ask
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Version indicator for debugging browser caching issues
+        console.log("Chatbot Frontend Version: 1.9"); 
+
+        const searchForm = document.getElementById('searchForm');
+        const chatMessages = document.getElementById('chatMessages');
+        const chatContainer = document.getElementById('chatContainer');
+
+        /**
+         * Appends a message to the chat display.
+         * @param {string} content The text content of the message.
+         * @param {boolean} isUser True if the message is from the user, false for bot.
+         * @param {string|null} sourceUrl Optional URL to display as "Read more".
+         * @returns {HTMLElement} The outer message div element.
+         */
+        function appendMessage(content, isUser = false, sourceUrl = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start ' + (isUser ? 'justify-end' : '');
+
+            const messageBubble = document.createElement('div');
+            messageBubble.className = isUser ? 'user-message-bubble' : 'bot-message-bubble';
+
+            if (!isUser) {
+                let mainContent = content;
+                
+                // Regex to strip any remaining common introductory phrases from the beginning of the content.
+                // This acts as a robust frontend cleanup, in case backend variations occur.
+                const introPhrasesToStrip = [
+                    /^Certainly, here's a definition from our knowledge base:\s*/i,
+                    /^Here's an insight related to your query:\s*-?\s*/i,
+                    /^Certainly, based on our information, here's what I found:\s*/i,
+                    /^Regarding your query, we can share the following information:\s*/i,
+                    /^Here's some information that may be helpful:\s*/i,
+                    /^I've found this relevant detail from our resources:\s*/i,
+                ];
+
+                for (const phraseRegex of introPhrasesToStrip) {
+                    mainContent = mainContent.replace(phraseRegex, '').trim();
+                }
+
+                // Check for newline followed by a bullet point or number for list items
+                const hasListItems = mainContent.includes('\n- ') || mainContent.includes('\n* ') || mainContent.match(/\n\d+\.\s/);
+
+                if (hasListItems) {
+                    const parts = mainContent.split('\n');
+                    let headingPart = parts[0].trim(); 
+                    // Remove any leading list markers from the assumed heading part
+                    headingPart = headingPart.replace(/^(-|\*|\d+\.)\s*/, '').trim(); 
+                    
+                    const listItemParts = parts.slice(1).filter(item => item.trim() !== '');
+
+                    if (headingPart) { // Only add heading if it's not empty after cleaning
+                        const headingP = document.createElement('p');
+                        headingP.classList.add('message-text', 'font-bold', 'text-base', 'pb-1'); 
+                        headingP.textContent = headingPart;
+                        messageBubble.appendChild(headingP);
+                    }
+
+                    const ul = document.createElement('ul');
+                    ul.classList.add('list-disc', 'list-inside', 'ml-4', 'mt-2', 'mb-2', 'text-sm', 'space-y-1'); 
+                    listItemParts.forEach(item => {
+                        const cleanedItem = item.replace(/^(-|\*|\d+\.)\s*/, '').trim();
+                        if (cleanedItem) {
+                            const li = document.createElement('li');
+                            li.textContent = cleanedItem;
+                            ul.appendChild(li);
+                        }
+                    });
+                    if (ul.children.length > 0) { // Only append ul if it has list items
+                        messageBubble.appendChild(ul);
+                    } else if (!headingPart) { // If no list items and no heading, just append mainContent as a paragraph
+                        const answerP = document.createElement('p');
+                        answerP.classList.add('message-text');
+                        answerP.innerHTML = mainContent.replace(/\n/g, '<br>');
+                        messageBubble.appendChild(answerP);
+                    }
+
+                } else {
+                    // If no list items, just append as a paragraph
+                    const answerP = document.createElement('p');
+                    answerP.classList.add('message-text');
+                    answerP.innerHTML = mainContent.replace(/\n/g, '<br>');
+                    messageBubble.appendChild(answerP);
+                }
+
+                if (sourceUrl) {
+                    const sourceP = document.createElement('p');
+                    // Create the "Read more" clickable link
+                    sourceP.innerHTML = `<a href="${sourceUrl}" target="_blank" class="text-blue-600 hover:underline font-semibold mt-1 inline-block">Read more</a>`;
+                    sourceP.classList.add('message-text', 'text-sm');
+                    messageBubble.appendChild(sourceP);
+                }
+
+            } else {
+                const p = document.createElement('p');
+                p.className = 'message-text';
+                p.textContent = content; 
+                messageBubble.appendChild(p);
+            }
+            
+            messageDiv.appendChild(messageBubble);
+            chatMessages.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            return messageDiv;
+        }
+
+        // Event listener for form submission
+        searchForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            const queryInput = document.getElementById('query');
+            const query = queryInput.value.trim();
+
+            if (!query) return;
+
+            appendMessage(query, true); 
+            queryInput.value = ''; 
+
+            const loadingMessageDiv = appendMessage("Thinking..."); 
+
+            try {
+                const requestBody = JSON.stringify({ query: query });
+                // CRITICAL CHANGE: Use a relative path for deployed app
+                const fetchUrl = '/search'; 
+
+                console.log('Fetching URL:', fetchUrl);
+                console.log('Sending request body:', requestBody);
+                console.log('Sending Content-Type:', 'application/json');
+
+                const response = await fetch(fetchUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'         
+                    },
+                    body: requestBody 
+                });
+
+                if (!response.ok) {
+                    // Assume error response structure from backend
+                    const errorData = await response.json(); 
+                    console.error('HTTP Error Response:', errorData.response_content);
+                    throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorData.response_content || 'Unknown error'}`);
+                }
+
+                const data = await response.json();
+                console.log('Received data:', data);
+
+                loadingMessageDiv.remove();
+
+                // Backend is expected to send data.response_content and data.source_url
+                if (data.response_content) {
+                    appendMessage(data.response_content, false, data.source_url); // Pass sourceUrl to frontend function
+                } else {
+                    appendMessage("I'm not sure about that. Could you please ask about our specific services or expertise?", false, null);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                loadingMessageDiv.remove(); 
+                appendMessage(`I apologize, but I'm having trouble processing your request. Please try again. (Details: ${error.message})`, false, null);
+            }
+        });
+    </script>
+</body>
+</html>
