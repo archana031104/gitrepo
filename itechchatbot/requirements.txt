@@ -1,14 +1,14 @@
-Flask==3.0.3
+﻿Flask==3.0.3
 gunicorn==23.0.0
 requests==2.32.3
 beautifulsoup4==4.13.4
 lxml==5.4.0
 sentence-transformers==2.7.0
-# Using a torch version compatible with Render's available builds for Python 3.13.4
 torch==2.5.0
 urllib3==2.4.0
 numpy==1.26.4
-scipy==1.13.1
+# Pinning scipy to an older version that's more likely to have pre-compiled wheels
+scipy==1.10.1
 MarkupSafe==2.1.5
 Jinja2==3.1.4
 itsdangerous==2.2.0
