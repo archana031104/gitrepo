@@ -1,0 +1,40 @@
+
+{
+    "apply_job": {
+    
+        "response": "🚀 To apply for a job, please visit our 👉 <a href='https://ktgsoftware.com/careers.html' target='_blank' class='text-blue-700 font-bold hover:underline'>Careers Page</a>. Click the link to submit your application online!"
+    },
+    "contact_hr": {
+        "response": "📧 You can contact our HR department by emailing Info@ktgsoftware.com."
+    },
+    "company_address": {
+        "response": "📍Our address is: Plano, TX 75024, US"
+    },
+    "contact_number": {
+        "response": "📞 You can contact us at: +1 945 308 7313."
+    },
+    "contact_email": {
+        "response": "✉️ You can email us at: Info@ktgsoftware.com."
+    },
+    "get_time": {
+        "response_func": "get_current_time."
+    },
+    "location": {
+        "response": "📍 Our address is:  Plano, TX 75024, US"
+    },
+    
+    "greet": {
+        "response": "👋 Hello! How can I assist you today?"
+    },
+    "goodbye": {
+        "response": "👋 Goodbye! Have a great day."
+    },
+    "about_us": {
+        "response": "🌟 Your Partner in Digital Transformation! Welcome to KTG Software and Consulting , your trusted partner in navigating the dynamic landscape of digital transformation with over 20 years of experience. We are a dedicated team of IT experts, strategists, and innovators passionate about driving businesses toward a future of growth, efficiency, and success. We envision a world where businesses of all sizes harness the full potential of digital technology to achieve remarkable results. Our mission is to empower your business with the tools, strategies, and insights needed to thrive in an ever-evolving digital world."
+    },
+    "fallback": {
+        "response": "🤔 Sorry, I don't understand. Could you please rephrase your question?"
+    },
+     "clients": {
+        "response": "🌐 At KTG Software and Consulting, our success is measured by the success of our clients. Over the years, we have had the privilege of working with a diverse range of clients across various industries, and our commitment to delivering innovative, reliable, and tailored solutions has earned us their trust. Please visit our 👉 <a href='https://ktgsoftware.com/client.html' target='_blank' class='text-blue-700 font-bold hover:underline'>Clients Page</a>!."}
+}

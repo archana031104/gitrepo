@@ -1,0 +1,727 @@
+[
+    {
+        "text": "apply for a job",
+        "intent": "apply_job"
+    },
+    {
+        "text": "how to apply",
+        "intent": "apply_job"
+    },
+    {
+        "text": "job application",
+        "intent": "apply_job"
+    },
+    {
+        "text": "apply now",
+        "intent": "apply_job"
+    },
+    {
+        "text": "are you hiring?",
+        "intent": "apply_job"
+    },
+    {
+        "text": "job vacancies",
+        "intent": "apply_job"
+    },
+    {
+        "text": "career oppurtunities",
+        "intent": "apply_job"
+    },
+    {
+        "text": "careers page",
+        "intent": "apply_job"
+    },
+    {
+        "text": "job openings",
+        "intent": "apply_job"
+    },
+    {
+        "text": "how do I apply for a position?",
+        "intent": "apply_job"
+    },
+    {
+        "text": "where can I find job listings?",
+        "intent": "apply_job"
+    },
+    {
+        "text": "I want to work here",
+        "intent": "apply_job"
+    },
+    {
+        "text": "what's the hiring process?",
+        "intent": "apply_job"
+    },
+    {
+        "text": "are there any vacancies?",
+        "intent": "apply_job"
+    },
+    {
+        "text": "contact hr",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "hr contact",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "technical support",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "reach hr",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "human resources",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "talk to hr",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "how can I get in touch with hr?",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "who should I contact for HR questions?",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "need to speak to HR",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "address",
+        "intent": "company_address"
+    },
+    {
+        "text": "route",
+        "intent": "location"
+    },
+    {
+        "text": "location",
+        "intent": "location"
+    },
+    {
+        "text": "directions",
+        "intent": "location"
+    },
+    {
+        "text": "where are you located",
+        "intent": "location"
+    },
+    {
+        "text": "find us",
+        "intent": "location"
+    },
+    {
+        "text": "your office",
+        "intent": "location"
+    },
+    {
+        "text": "what's your company address?",
+        "intent": "company_address"
+    },
+    {
+        "text": "where is your main office?",
+        "intent": "company_address"
+    },
+    {
+        "text": "office location",
+        "intent": "location"
+    },
+    {
+        "text": "routes",
+        "intent": "location"
+    },
+    {
+        "text": "can I have your address?",
+        "intent": "company_address"
+    },
+    {
+        "text": "what is your address?",
+        "intent": "company_address"
+    },
+    {
+        "text": "contact number",
+        "intent": "contact_number"
+    },
+    {
+        "text": "phone number",
+        "intent": "contact_number"
+    },
+    {
+        "text": "call you",
+        "intent": "contact_number"
+    },
+    {
+        "text": "phone",
+        "intent": "contact_number"
+    },
+    {
+        "text": "telephone",
+        "intent": "contact_number"
+    },
+    {
+        "text": "what's your contact number?",
+        "intent": "contact_number"
+    },
+    {
+        "text": "can I call you?",
+        "intent": "contact_number"
+    },
+    {
+        "text": "phone line",
+        "intent": "contact_number"
+    },
+    {
+        "text": "how do I reach you by phone?",
+        "intent": "contact_number"
+    },
+    {
+        "text": "contact email",
+        "intent": "contact_email"
+    },
+    {
+        "text": "email id",
+        "intent": "contact_email"
+    },
+    {
+        "text": "email address",
+        "intent": "contact_email"
+    },
+    {
+        "text": "mail us",
+        "intent": "contact_email"
+    },
+    {
+        "text": "send email",
+        "intent": "contact_email"
+    },
+    {
+        "text": "what's your email?",
+        "intent": "contact_email"
+    },
+    {
+        "text": "can I send an email?",
+        "intent": "contact_email"
+    },
+    {
+        "text": "email support",
+        "intent": "contact_email"
+    },
+    {
+        "text": "mail id",
+        "intent": "contact_email"
+    },
+    {
+        "text": "gmail id",
+        "intent": "contact_email"
+    },
+    {
+        "text": "what is your email ID?",
+        "intent": "contact_email"
+    },
+    {
+        "text": "how do I email you?",
+        "intent": "contact_email"
+    },
+    {
+        "text": "can you give me your email?",
+        "intent": "contact_email"
+    },
+    {
+        "text": "what's the best email to reach you?",
+        "intent": "contact_email"
+    },
+    {
+        "text": "what's the time?",
+        "intent": "get_time"
+    },
+    {
+        "text": "tell me the time.",
+        "intent": "get_time"
+    },
+    {
+        "text": "current time?",
+        "intent": "get_time"
+    },
+    {
+        "text": "time is it",
+        "intent": "get_time"
+    },
+    {
+        "text": "time now",
+        "intent": "get_time"
+    },
+    {
+        "text": "what is the current time?",
+        "intent": "get_time"
+    },
+   
+    {
+        "text": "who are we?",
+        "intent": "about_us"
+    },
+    {
+        "text": "what is iTech Software Group?",
+        "intent": "about_us"
+    },
+    {
+        "text": "what do you do?",
+        "intent": "about_us"
+    },
+    {
+        "text": "company information",
+        "intent": "about_us"
+    },
+    {
+        "text": "what is your company about?",
+        "intent": "about_us"
+    },
+    {
+        "text": "what is itech software group?",
+        "intent": "about_us"
+    },
+  
+    
+    {
+        "text": "  your company?",
+        "intent": "about_us"
+    },
+    {
+        "text": "company overveiw",
+        "intent": "about_us"
+    },
+    {
+        "text": "who are you?",
+        "intent": "about_us"
+    },
+    
+    {
+        "text": "what do you do?",
+        "intent": "about_us"
+    },
+    {
+        "text": "what is your business?",
+        "intent": "about_us"
+    },
+    {
+        "text": "what's your story?",
+        "intent": "about_us"
+    },
+    {
+        "text": "who are you?",
+        "intent": "about_us"
+    },
+  
+   
+    {
+        "text": "Company information",
+        "intent": "about_us"
+    },
+    {
+        "text": "What is iTech Software Group?",
+        "intent": "about_us"
+    },
+   
+    {
+        "text": "More info about you",
+        "intent": "about_us"
+    },
+    {
+        "text": "About us",
+        "intent": "about_us"
+    },
+    {
+        "text": "who are you?",
+        "intent": "about_us"
+    },
+   
+    
+    
+    
+    {
+        "text": "Company information",
+        "intent": "about_us"
+    },
+    {
+        "text": "What is iTech Software Group?",
+        "intent": "about_us"
+    },
+   
+    {
+        "text": "Our company?",
+        "intent": "about_us"
+    },
+    {
+        "text": "The company?",
+        "intent": "about_us"
+    },
+
+{
+        "text": "Can you give me an overview of iTech Software Group?",
+        "intent": "about_us"
+    },
+    {
+        "text": "Brief about you",
+        "intent": "about_us"
+    },
+    {
+        "text": "where are we?",
+        "intent": "location"
+    },
+    {
+        "text": "what is our location?",
+        "intent": "location"
+    },
+    {
+        "text": "our location?",
+        "intent": "location"
+    },
+    {
+        "text": "your location?",
+        "intent": "location"
+    },
+     {
+        "text": "Where is iTech Software Group located?",
+        "intent": "location"
+    },
+
+
+{
+        "text": "Where are your offices located?",
+        "intent": "location"
+    },
+     {
+        "text": "Where is you office located?",
+        "intent": "location"
+    },
+    {
+        "text": "where are you?",
+        "intent": "location"
+    },
+      {
+        "text": "location",
+        "intent": "location"
+    },
+    {
+        "text": "what's your current location?",
+        "intent": "location"
+    },
+    {
+        "text": "hi",
+        "intent": "greet"
+    },
+    {
+        "text": "hlo",
+        "intent": "greet"
+    },
+    {
+        "text": "hello",
+        "intent": "greet"
+    },
+    {
+        "text": "hey",
+        "intent": "greet"
+    },
+    {
+        "text": "good morning",
+        "intent": "greet"
+    },
+    {
+        "text": "good afternoon",
+        "intent": "greet"
+    },
+    {
+        "text": "how do I apply for a job?",
+        "intent": "apply_job"
+    },
+    {
+        "text": "job application process?",
+        "intent": "apply_job"
+    },
+    {
+        "text": "send resume",
+        "intent": "apply_job"
+    },
+    {
+        "text": "upload my CV",
+        "intent": "apply_job"
+    },
+    {
+        "text": "open roles?",
+        "intent": "apply_job"
+    },
+    {
+        "text": "join your team",
+        "intent": "apply_job"
+    },
+    {
+        "text": "apply online?",
+        "intent": "apply_job"
+    },
+    {
+        "text": "are you hiring?",
+        "intent": "apply_job"
+    },
+
+    {
+        "text": "bye",
+        "intent": "goodbye"
+    },
+    {
+        "text": "goodbye",
+        "intent": "goodbye"
+    },
+    {
+        "text": "see you later",
+        "intent": "goodbye"
+    },
+    {
+        "text": "thank you, bye",
+        "intent": "goodbye"
+    },
+    {
+        "text": "end chat",
+        "intent": "goodbye"
+    },
+    {
+        "text": "chat later",
+        "intent": "goodbye"
+    },
+    {
+        "text": "good night",
+        "intent": "goodbye"
+    },
+    {
+        "text": "I have a question for HR",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "need HR email",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "can I contact HR?",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "get in touch with HR",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "connect with HR",
+        "intent": "contact_hr"
+    },
+    {
+        "text": "greetings",
+        "intent": "greet"
+    },
+    {
+        "text": "bye",
+        "intent": "goodbye"
+    },
+    {
+        "text": "goodbye",
+        "intent": "goodbye"
+    },
+    {
+        "text": "see you later",
+        "intent": "goodbye"
+    },
+    {
+        "text": "farewell",
+        "intent": "goodbye"
+    },
+    {
+        "text": "talk to you later",
+        "intent": "goodbye"
+    },
+    {
+        "text": "what is the weather like today?",
+        "intent": "fallback"
+    },
+    {
+        "text": "tell me a joke",
+        "intent": "fallback"
+    },
+    {
+        "text": "who won the last football match?",
+        "intent": "fallback"
+    },
+    {
+        "text": "random question",
+        "intent": "fallback"
+    },
+    {
+        "text": "some gibberish",
+        "intent": "fallback"
+    },
+    {
+        "text": "blabla",
+        "intent": "fallback"
+    },
+    {
+        "text": "I don't know what I'm saying",
+        "intent": "fallback"
+    },
+    {
+        "text": "can you dance?",
+        "intent": "fallback"
+    },
+    {
+        "text": "what's your favorite color?",
+        "intent": "fallback"
+    },
+    {
+        "text": "tell me a joke",
+        "intent": "fallback"
+    },
+    {
+        "text": "sing a song",
+        "intent": "fallback"
+    },
+    {
+        "text": "how old are you?",
+        "intent": "fallback"
+    },
+    {
+        "text": "do you believe in aliens?",
+        "intent": "fallback"
+    },
+    {
+        "text": "can pigs fly?",
+        "intent": "fallback"
+    },
+    {
+        "text": "what's the weather like on Mars?",
+        "intent": "fallback"
+    },
+    {
+        "text": "what's 2+2?",
+        "intent": "fallback"
+    },
+    {
+        "text": "tell me a scary story",
+        "intent": "fallback"
+    },
+    {
+        "text": "what's trending on Twitter?",
+        "intent": "fallback"
+    },
+    {
+        "text": "sing me a lullaby",
+        "intent": "fallback"
+    },
+    {
+        "text": "do you have a pet?",
+        "intent": "fallback"
+    },
+    {
+        "text": "who's the president?",
+        "intent": "fallback"
+    },
+    {
+        "text": "can you cook?",
+        "intent": "fallback"
+    },
+    {
+        "text": "what's the capital of Mars?",
+        "intent": "fallback"
+    },
+    {
+        "text": "should I eat pizza or pasta?",
+        "intent": "fallback"
+    },
+    {
+        "text": "where is the moon right now?",
+        "intent": "fallback"
+    },
+    {
+        "text": "recommend a movie",
+        "intent": "fallback"
+    },
+    {
+        "text": "do you like music?",
+        "intent": "fallback"
+    },
+    {
+        "text": "what's your favorite food?",
+        "intent": "fallback"
+    },
+    {
+        "text": "how tall are you?",
+        "intent": "fallback"
+    },
+    {
+        "text": "how do I become famous?",
+        "intent": "fallback"
+    },
+     {
+  "text": "who are your clients",
+  "intent": "clients"
+},
+{
+  "text": "clients",
+  "intent": "clients"
+},
+{
+  "text": "list of clients",
+  "intent": "clients"
+},
+{
+  "text": "client page",
+  "intent": "clients"
+},
+{
+  "text": "who are the clients",
+  "intent": "clients"
+},
+{
+  "text": "can you tell me about your clients",
+  "intent": "clients"
+},
+{
+  "text": "what clients do you have",
+  "intent": "clients"
+},
+{
+  "text": "our clients",
+  "intent": "clients"
+},
+{
+  "text": "who are your customers",
+  "intent": "clients"
+},
+{
+  "text": "what clients do you work with",
+  "intent": "clients"
+},
+{
+  "text": "can you list your clients",
+  "intent": "clients"
+},
+{
+  "text": "who are your partners",
+  "intent": "clients"
+},
+{
+  "text": "who are your business partners",
+  "intent": "clients"
+},
+{
+  "text": "business partners",
+  "intent": "clients"
+},
+{
+  "text": "partners",
+  "intent": "clients"
+},
+{
+  "text": "client",
+  "intent": "clients"
+}
+
+]
