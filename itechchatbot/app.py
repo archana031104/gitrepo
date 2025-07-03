@@ -4,13 +4,26 @@ import re
 import logging
 from collections import Counter 
 from pathlib import Path
-from datetime import datetime # Import for get_current_time function
-from urllib.parse import urlparse # Ensure urlparse is imported at the top
-import random # Added import for the 'random' module
+from datetime import datetime
+from urllib.parse import urlparse
+import random
 
-import torch 
+import torch
 from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
 from sentence_transformers import SentenceTransformer, util
+
+# --- Flask App Setup ---
+# CRITICAL FIX: Adjusted template_folder path in Flask constructor
+# Ensure no leading whitespace before 'app = Flask(...)'
+app = Flask(__name__,
+            static_folder=str(Path(__file__).parent / 'modules' / 'static'),
+            template_folder=str(Path(__file__).parent / 'modules' / 'templates')) 
+CORS(app) # Enable CORS for all routes, or specify origins if needed
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+app_logger = logging.getLogger(__name__)
 
 # --- Global variables for model and embeddings ---
 # These will be loaded once when the application starts
@@ -18,16 +31,18 @@ model = None
 corpus_embeddings = None
 corpus_texts = []
 corpus_urls = []
+# cached_scraped_data = {} # This variable is not used, can be removed
+service_page_map = {}
+MAJOR_SECTION_KEYWORDS = []
 
 # --- Global variables for Intent Data ---
 intents_data = {}
-training_data = [] # List of {'text': '...', 'intent': '...'}
-# Using a dictionary for faster lookup by normalized text
+# training_data = [] # This variable is not used directly, can be removed
 training_phrases_map = {} # {'normalized_text': 'intent_name'}
+homepage_url = "" # To store the normalized homepage URL from scraped data
 
 # Define file paths relative to the current script
 BASE_DIR = Path(__file__).parent
-# CRITICAL FIX: Adjusted paths to include 'modules' as per your file structure
 STATIC_DIR = BASE_DIR / 'modules' / 'static' 
 DATA_DIR = STATIC_DIR / 'data' # Data is still inside static
 
@@ -40,19 +55,8 @@ CHATBOT_CONFIG_FILE = BASE_DIR / 'config.json' # Assuming config.json is in the 
 # Ensure the data directory exists
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# --- Flask App Setup ---
-# CRITICAL FIX: Adjusted template_folder path in Flask constructor
-app = Flask(__name__,
-            static_folder=str(STATIC_DIR),
-            template_folder=str(BASE_DIR / 'modules' / 'templates')) 
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-app_logger = logging.getLogger(__name__)
-
-# --- Global variables for scraped data and homepage URL ---
+# --- Global variable for scraped data ---
 scraped_data = {}
-homepage_url = "" # To store the normalized homepage URL from scraped data
 
 # --- Helper Functions ---
 
@@ -131,7 +135,7 @@ def load_scraped_content():
 
 def load_intent_data():
     """Loads intents and training phrases into global variables."""
-    global intents_data, training_data, training_phrases_map
+    global intents_data, training_phrases_map
 
     app_logger.info("Loading intent data from intents.json and training.json...")
     
@@ -185,7 +189,6 @@ def get_current_time():
     # Assuming the server is located in Coimbatore based on previous context
     return f"The current time is {current_time_str} in Coimbatore, India."
 
-# CRITICAL FIX: Added this function for the "clients" intent
 def get_clients_info():
     """Returns a professional sentence about clients and the client page link."""
     client_page_url = "https://ktgsoftware.com/client.html"
@@ -254,41 +257,48 @@ def load_or_generate_embeddings():
     # Check if already loaded in this process (e.g., for subsequent requests)
     if model is not None and corpus_embeddings is not None and len(corpus_texts) > 0:
         app_logger.info("Model and embeddings already loaded in this process. Skipping regeneration.")
+        # Ensure dynamic maps are built if not already
+        if not service_page_map:
+            _build_dynamic_service_map()
+        if not MAJOR_SECTION_KEYWORDS:
+            _infer_major_section_keywords()
         return
 
     app_logger.info("Checking for existing embeddings to load or generate...")
 
     embeddings_exist_and_not_outdated = False
     if EMBEDDINGS_FILE.exists() and os.path.getsize(EMBEDDINGS_FILE) > 0:
-        if CONTENT_FILE.exists() and CONTENT_FILE.stat().st_mtime > EMBEDDINGS_FILE.stat().st_mtime:
-            app_logger.warning("Scraped content file is newer than embeddings file. Regenerating embeddings.")
-            embeddings_exist_and_not_outdated = False # Force regeneration
-        else:
-            try:
-                with open(EMBEDDINGS_FILE, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    corpus_embeddings = torch.tensor(data['embeddings'])
-                    corpus_texts = data['texts']
-                    corpus_urls = data['urls']
-                app_logger.info(f"Loaded {len(corpus_embeddings)} existing embeddings from {EMBEDDINGS_FILE}.")
+        try:
+            with open(EMBEDDINGS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                corpus_embeddings = torch.tensor(data['embeddings'])
+                corpus_texts = data['texts']
+                corpus_urls = data['urls']
+            app_logger.info(f"Loaded {len(corpus_embeddings)} existing embeddings from {EMBEDDINGS_FILE}.")
+            
+            # Check if content file is newer than embeddings file
+            if CONTENT_FILE.exists() and CONTENT_FILE.stat().st_mtime > EMBEDDINGS_FILE.stat().st_mtime:
+                app_logger.warning("Scraped content file is newer than embeddings file. Regenerating embeddings.")
+                embeddings_exist_and_not_outdated = False # Force regeneration
+            else:
                 embeddings_exist_and_not_outdated = True
-            except (json.JSONDecodeError, KeyError, TypeError, FileNotFoundError) as e:
-                app_logger.warning(f"Error loading embeddings file ({e}). Embeddings will be regenerated.")
-                corpus_embeddings = None
-                corpus_texts = []
-                corpus_urls = []
-            except Exception as e:
-                app_logger.warning(f"An unexpected error occurred while loading embeddings ({e}). Embeddings will be regenerated.")
-                corpus_embeddings = None
-                corpus_texts = []
-                corpus_urls = []
+        except (json.JSONDecodeError, KeyError, TypeError, FileNotFoundError) as e:
+            app_logger.warning(f"Error loading embeddings file ({e}). Embeddings will be regenerated.")
+            corpus_embeddings = None
+            corpus_texts = []
+            corpus_urls = []
+        except Exception as e: # CRITICAL FIX: Added general exception for robustness
+            app_logger.warning(f"An unexpected error occurred while loading embeddings ({e}). Embeddings will be regenerated.")
+            corpus_embeddings = None
+            corpus_texts = []
+            corpus_urls = []
 
     if embeddings_exist_and_not_outdated:
         if model is None:
             try:
-                app_logger.info("Model was None, loading SentenceTransformer model 'all-mpnet-base-v4' after loading embeddings...")
+                app_logger.info("Model was None, loading SentenceTransformer model 'all-MiniLM-L6-v2' after loading embeddings...")
                 # Load model from the bundled directory
-                model = SentenceTransformer(str(BASE_DIR / 'all-mpnet-base-v4'))
+                model = SentenceTransformer('all-MiniLM-L6-v2')
                 app_logger.info("SentenceTransformer model loaded successfully (after embeddings).")
             except Exception as e:
                 app_logger.error(f"Failed to load SentenceTransformer model after embeddings: {e}")
@@ -297,25 +307,29 @@ def load_or_generate_embeddings():
                 corpus_texts = []
                 corpus_urls = []
         if model is not None and corpus_embeddings is not None:
+            _build_dynamic_service_map() # Ensure maps are built
+            _infer_major_section_keywords() # Ensure keywords are inferred
             return # Successfully loaded existing embeddings and model.
 
     app_logger.info("Embeddings not found/loaded or content updated. Generating new embeddings.")
 
     # Ensure scraped_data is loaded before generating embeddings
-    if not scraped_data: # Check global scraped_data, assuming load_scraped_content() was called.
-        if not load_scraped_content(): # Attempt to load if not already loaded
+    if not scraped_data: 
+        if not load_scraped_content(): 
             app_logger.error("Cannot generate embeddings: Scraped data is empty or missing after attempting to load.")
             corpus_embeddings = None
             corpus_texts = []
             corpus_urls = []
             return
 
+    _build_dynamic_service_map() # Build dynamic maps before embedding generation
+    _infer_major_section_keywords() # Infer keywords before embedding generation
+
     texts_for_embedding = []
     urls_for_embedding = []
-    seen_snippets = set() # For deduplication during embedding generation
+    seen_snippets = set() 
 
     for url, page_content in scraped_data.items():
-        # Process paragraphs
         paragraphs = page_content.get('paragraphs', [])
         for p_text in paragraphs:
             cleaned_p_text = p_text.strip()
@@ -324,7 +338,6 @@ def load_or_generate_embeddings():
                 urls_for_embedding.append(url)
                 seen_snippets.add(cleaned_p_text)
 
-        # Process headings
         headings = page_content.get('headings', [])
         for h_text in headings:
             cleaned_h_text = h_text.strip()
@@ -333,7 +346,6 @@ def load_or_generate_embeddings():
                 urls_for_embedding.append(url)
                 seen_snippets.add(cleaned_h_text)
         
-        # Process specific lists like 'services', 'products', 'use_cases', 'benefits', 'features'
         for category_key in ['services', 'products', 'use_cases', 'benefits', 'features']:
             items = page_content.get(category_key, [])
             if isinstance(items, list): 
@@ -341,7 +353,6 @@ def load_or_generate_embeddings():
                     cleaned_item_text = str(item_text).strip()
                     if cleaned_item_text: 
                         page_title = page_content.get('page_title', url.split('/')[-1].replace('.html', '').replace('-', ' ').title())
-                        # This forms the embedding text for structured items like "Service of Homepage: Digital Transformation"
                         text_to_embed = f"{category_key.replace('_', ' ').title()} of {page_title}: {cleaned_item_text}"
                         
                         if text_to_embed not in seen_snippets:
@@ -349,7 +360,6 @@ def load_or_generate_embeddings():
                             urls_for_embedding.append(url)
                             seen_snippets.add(text_to_embed) 
 
-        # Add 'extracted_text' as a last resort or for larger chunks of text
         extracted_full_text = page_content.get('extracted_text', '')
         if extracted_full_text and extracted_full_text.strip() and extracted_full_text.strip() not in seen_snippets:
             texts_for_embedding.append(extracted_full_text.strip())
@@ -365,9 +375,8 @@ def load_or_generate_embeddings():
 
     try:
         if model is None:
-            app_logger.info("Loading SentenceTransformer model 'all-mpnet-base-v4' for generation...")
-            # Load model from the bundled directory
-            model = SentenceTransformer(str(BASE_DIR / 'all-mpnet-base-v4'))
+            app_logger.info("Loading SentenceTransformer model 'all-MiniLM-L6-v2' for generation...")
+            model = SentenceTransformer( 'all-MiniLM-L6-v2')
             app_logger.info("SentenceTransformer model loaded successfully.")
         else:
             app_logger.info("SentenceTransformer model already loaded, reusing for generation.")
@@ -396,20 +405,153 @@ def load_or_generate_embeddings():
         corpus_texts = []
         corpus_urls = []
 
+def _normalize_text_for_alias(text):
+    """Normalizes text by stripping whitespace and extra spaces."""
+    if text is None:
+        return ""
+    text = str(text).lower().strip()
+    text = re.sub(r'[^\w\s/&-]', '', text)
+    return text
+
+def _infer_major_section_keywords():
+    """Dynamically infers major section keywords from the scraped content."""
+    global MAJOR_SECTION_KEYWORDS
+    app_logger.info("Dynamically inferring major section keywords...")
+    scraped_data_local = load_json_data(CONTENT_FILE)
+
+    all_normalized_headings = []
+    for url, page_content in scraped_data_local.items():
+        for heading in page_content.get('headings', []):
+            if heading and heading.strip():
+                all_normalized_headings.append(_normalize_text_for_alias(heading))
+
+    heading_counts = Counter(all_normalized_headings)
+
+    inferred_keywords = set()
+    frequency_threshold = max(1, len(scraped_data_local) // 3)
+
+    baseline_keywords = [
+        "contact us", "about us", "quick links", "our trusted clients",
+        "request a call back", "services", "products", "home", "solutions",
+        "faqs", "get in touch", "career", "careers","email"
+    ]
+    for kw in baseline_keywords:
+        inferred_keywords.add(_normalize_text_for_alias(kw))
+
+    for heading, count in heading_counts.items():
+        if (count >= frequency_threshold and len(heading.split()) > 1) or \
+           (len(heading.split()) > 2 and count > 0):
+            inferred_keywords.add(heading)
+
+    product_service_names = set(service_page_map.keys())
+
+    final_inferred_keywords = []
+    for kw in inferred_keywords:
+        if kw not in product_service_names or \
+           kw in ["services", "products", "solutions", "applications", "technologies"]:
+            final_inferred_keywords.append(kw)
+
+    MAJOR_SECTION_KEYWORDS = list(set(final_inferred_keywords))
+    app_logger.info(f"Inferred {len(MAJOR_SECTION_KEYWORDS)} major section keywords.")
+
+def _build_dynamic_service_map():
+    """Dynamically builds the service_page_map from scraped content."""
+    global service_page_map
+    service_page_map = {}
+
+    app_logger.info("Building dynamic service page map...")
+    scraped_data_local = load_json_data(CONTENT_FILE)
+
+    for url, page_content in scraped_data_local.items():
+        potential_aliases = set()
+
+        page_title = page_content.get('page_title', '')
+        if page_title:
+            potential_aliases.add(_normalize_text_for_alias(page_title))
+
+        for h_text in page_content.get('headings', []):
+            if h_text and h_text.strip():
+                normalized_h = _normalize_text_for_alias(h_text)
+                potential_aliases.add(normalized_h)
+                
+                parts = re.split(r'[/\-&]', normalized_h)
+                for part in parts:
+                    part = part.strip()
+                    if part and len(part) > 1:
+                        potential_aliases.add(part)
+
+        parsed_url = urlparse(url)
+        url_path_segment = Path(parsed_url.path).stem.lower()
+        if url_path_segment and url_path_segment != 'index':
+            potential_aliases.add(url_path_segment)
+            
+            hyphen_to_space = url_path_segment.replace('-', ' ')
+            if hyphen_to_space != url_path_segment:
+                potential_aliases.add(hyphen_to_space)
+            
+        for list_key in ['services', 'products', 'use_cases']:
+            for item in page_content.get(list_key, []):
+                if item and item.strip():
+                    potential_aliases.add(_normalize_text_for_alias(item))
+
+
+        for alias in potential_aliases:
+            if alias and alias not in service_page_map:
+                service_page_map[alias] = url
+    
+    app_logger.info(f"Dynamic service map built with {len(service_page_map)} entries.")
+
+def _get_section_and_sub_content(structured_content_list, start_index, parent_heading_level):
+    """
+    Linearly traverses structured_content_list from start_index to collect content
+    (sub-headings, paragraphs, list items) belonging to the section defined by start_index,
+    stopping when a new major section or a heading of equal/higher level is encountered.
+    """
+    collected_content = []
+    
+    current_idx = start_index + 1
+    
+    while current_idx < len(structured_content_list):
+        element = structured_content_list[current_idx]
+        element_heading_text = _normalize_text_for_alias(element.get("heading_text", ""))
+        element_tag = element.get("tag", "")
+        element_level = int(element_tag[1]) if element_tag.startswith('h') else 99
+        
+        if element_tag.startswith('h') and element_level <= parent_heading_level:
+            if element_heading_text in MAJOR_SECTION_KEYWORDS:
+                break
+            if element_level <= parent_heading_level:
+                break
+
+        if element_tag.startswith('h') and element_level > parent_heading_level:
+            if element_heading_text and element_heading_text not in collected_content:
+                collected_content.append(element_heading_text)
+            for p_text in element.get("content_paragraphs", []):
+                if p_text.strip() and p_text.strip() not in collected_content:
+                    collected_content.append(p_text.strip())
+        elif element_tag == 'p' or element_tag == 'li':
+            for p_text in element.get("content_paragraphs", []):
+                if p_text.strip() and p_text.strip() not in collected_content:
+                    collected_content.append(p_text.strip())
+        
+        current_idx += 1
+    
+    return list(filter(None, collected_content))
+
 def get_specific_list_response(query):
     """
     Checks if the query is asking for a specific list (services, products, use cases, benefits, features).
     If so, retrieves the list from scraped_content.json (index.html or other relevant page) and formats it.
     """
-    global model, corpus_embeddings, corpus_texts, corpus_urls, homepage_url # Added homepage_url to global
+    global model, corpus_embeddings, corpus_texts, corpus_urls, homepage_url
 
     query_lower = query.lower().strip()
     
     services_keywords = ["services", "list of services", "our services", "what services do you offer", "tell me about your services", "company services"]
     products_keywords = ["products", "list of products", "our products", "what products do you have", "tell me about your products", "company products"]
-    use_cases_keywords = ["use case","use cases", "list of use cases", "our use cases", "examples of use cases", "tell me about use cases", "company use cases"] # Added "applications"
-    benefits_keywords = ["benefits of", "advantages of", "what are the benefits of", "tell me the benefits of", "benefits", "advantages", "perks", "value proposition"] # Added direct keywords
-    features_keywords = ["features of", "functionalities of", "capabilities of", "what are the features of", "tell me the features of", "features", "functionalities", "capabilities"] # Added direct keywords
+    use_cases_keywords = ["use case","use cases", "list of use cases", "our use cases", "examples of use cases", "tell me about use cases", "company use cases"]
+    benefits_keywords = ["benefits of", "advantages of", "what are the benefits of", "tell me the benefits of", "benefits", "advantages", "perks", "value proposition"]
+    features_keywords = ["features of", "functionalities of", "capabilities of", "what are the features of", "tell me the features of", "features", "functionalities", "capabilities"]
 
     target_category = None
     response_heading = ""
@@ -417,15 +559,12 @@ def get_specific_list_response(query):
 
     if any(keyword in query_lower for keyword in services_keywords):
         target_category = "services"
-        # MODIFIED: More professional heading
         response_heading = "Allow me to present the services offered by KTG Software and Consulting:"
     elif any(keyword in query_lower for keyword in products_keywords):
         target_category = "products"
-        # MODIFIED: More professional heading
         response_heading = "Discover the products provided by KTG Software and Consulting:"
     elif any(keyword in query_lower for keyword in use_cases_keywords):
         target_category = "use_cases"
-        # MODIFIED: More professional heading
         response_heading = "Explore key use cases for KTG Software and Consulting's solutions:"
     elif any(keyword in query_lower for keyword in benefits_keywords):
         target_category = "benefits"
@@ -433,10 +572,8 @@ def get_specific_list_response(query):
         if match:
             target_topic = match.group(1).strip()
             target_topic = re.sub(r'(?:your|the|a|an)$', '', target_topic).strip()
-            # MODIFIED: More professional heading
             response_heading = f"Certainly, here are the core benefits of {target_topic}:"
         else:
-            # MODIFIED: More professional heading
             response_heading = "Here are some key benefits you might find valuable:"
     elif any(keyword in query_lower for keyword in features_keywords):
         target_category = "features"
@@ -444,10 +581,8 @@ def get_specific_list_response(query):
         if match:
             target_topic = match.group(1).strip()
             target_topic = re.sub(r'(?:your|the|a|an)$', '', target_topic).strip()
-            # MODIFIED: More professional heading
             response_heading = f"To elaborate on {target_topic}, here are its primary features:"
         else:
-            # MODIFIED: More professional heading
             response_heading = "Here are some of the distinctive features:"
 
     if target_category:
@@ -471,12 +606,10 @@ def get_specific_list_response(query):
                             continue
                         
                         current_url = corpus_urls[idx]
-                        # Only consider pages that have 'structured_content' for specific list extraction
                         if current_url in scraped_data and scraped_data[current_url].get('structured_content'):
                             page_title_lower = scraped_data[current_url].get('page_title', '').lower()
                             headings_lower = [h.lower() for h in scraped_data[current_url].get('headings', [])]
                             
-                            # Check if the target topic is strongly present in the page title or headings
                             if target_topic in page_title_lower or any(target_topic in h for h in headings_lower):
                                 candidate_pages_for_topic[current_url] = max(candidate_pages_for_topic.get(current_url, 0), score.item())
 
@@ -516,57 +649,58 @@ def get_specific_list_response(query):
                                             if p_text.strip():
                                                 collected_items.append(p_text.strip())
                                         continue 
-                                
-                                if start_collecting:
-                                    if section_tag.startswith('h') and main_section_tag.startswith('h') and \
-                                       int(section_tag[1]) <= int(main_section_tag[1]):
-                                        break 
                                     
-                                    if any(kw in section_heading_lower for kw in termination_keywords):
-                                        break 
+                                    if start_collecting: # This block was incorrectly indented in previous versions
+                                        if section_tag.startswith('h') and main_section_tag.startswith('h') and \
+                                           int(section_tag[1]) <= int(main_section_tag[1]):
+                                            break 
+                                        
+                                        if any(kw in section_heading_lower for kw in termination_keywords):
+                                            break 
 
-                                    item_text = section.get("heading_text", "").strip()
-                                    item_paragraphs = [p.strip() for p in section.get("content_paragraphs", []) if p.strip()]
+                                        item_text = section.get("heading_text", "").strip()
+                                        item_paragraphs = [p.strip() for p in section.get("content_paragraphs", []) if p.strip()]
 
-                                    if item_text and item_paragraphs:
-                                        collected_items.append(f"{item_text}: {item_paragraphs[0]}")
-                                        collected_items.extend(item_paragraphs[1:])
-                                    elif item_text:
-                                        collected_items.append(item_text)
-                                    elif item_paragraphs:
-                                        collected_items.extend(item_paragraphs)
-                                    
-                                    def deep_collect_nested(nested_sections):
-                                        for nested_sec in nested_sections:
-                                            nested_heading = nested_sec.get("heading_text", "").strip()
-                                            nested_content = [p.strip() for p in nested_sec.get("content_paragraphs", []) if p.strip()]
-                                            if nested_heading and nested_content:
-                                                collected_items.append(f"{nested_heading}: {nested_content[0]}")
-                                                collected_items.extend(nested_content[1:])
-                                            elif nested_heading:
-                                                collected_items.append(nested_heading)
-                                            elif nested_content:
-                                                collected_items.extend(nested_content)
-                                            if nested_sec.get("sub_sections"):
-                                                deep_collect_nested(nested_sec["sub_sections"])
+                                        if item_text and item_paragraphs:
+                                            collected_items.append(f"{item_text}: {item_paragraphs[0]}")
+                                            collected_items.extend(item_paragraphs[1:])
+                                        elif item_text:
+                                            collected_items.append(item_text)
+                                        elif item_paragraphs:
+                                            collected_items.extend(item_paragraphs)
+                                        
+                                        def deep_collect_nested(nested_sections):
+                                            for nested_sec in nested_sections:
+                                                nested_heading = nested_sec.get("heading_text", "").strip()
+                                                nested_content = [p.strip() for p in nested_sec.get("content_paragraphs", []) if p.strip()]
+                                                if nested_heading and nested_content:
+                                                    collected_items.append(f"{nested_heading}: {nested_content[0]}")
+                                                    collected_items.extend(nested_content[1:])
+                                                elif nested_heading:
+                                                    collected_items.append(nested_heading)
+                                                elif nested_content:
+                                                    collected_items.extend(nested_content)
+                                                if nested_sec.get("sub_sections"):
+                                                    deep_collect_nested(nested_sec["sub_sections"])
 
-                                    if section.get("sub_sections"):
-                                        deep_collect_nested(section["sub_sections"])
+                                        if section.get("sub_sections"):
+                                            deep_collect_nested(section["sub_sections"])
 
-                            if collected_items:
-                                unique_items = []
-                                seen_display_items = set()
-                                for item in collected_items:
-                                    cleaned_item = re.sub(r'^- ', '', str(item)).strip() 
-                                    if cleaned_item and cleaned_item not in seen_display_items:
-                                        unique_items.append(cleaned_item)
-                                        seen_display_items.add(cleaned_item)
+                                if collected_items:
+                                    unique_items = []
+                                    seen_display_items = set()
+                                    for item in collected_items:
+                                        cleaned_item = re.sub(r'^- ', '', str(item)).strip() 
+                                        if cleaned_item and cleaned_item not in seen_display_items:
+                                            unique_items.append(cleaned_item)
+                                            seen_display_items.add(cleaned_item)
 
-                                if unique_items:
-                                    list_items = "\n".join([f"- {item}" for item in unique_items])
-                                    # Removed trailing sentence from response_text, frontend handles the closing phrase
-                                    response_text = f"{response_heading}\n{list_items}"
-                                    return [('Answer', response_text, best_url_for_topic_specific_list)] 
+                                    if unique_items:
+                                        list_items = "\n".join([f"- {item}" for item in unique_items])
+                                        response_text = f"{response_heading}\n{list_items}" 
+                                        return [('Answer', response_text, best_url_for_topic_specific_list)] 
+                                    else:
+                                        return None 
                                 else:
                                     return None 
                             else:
@@ -589,7 +723,6 @@ def get_specific_list_response(query):
                     item_list = index_page_data.get(target_category, []) 
                     if item_list and isinstance(item_list, list):
                         list_items = "\n".join([f"- {item}" for item in item_list])
-                        # Removed trailing sentence from response_text, frontend handles the closing phrase
                         response_text = f"{response_heading}\n{list_items}" 
                         return [('Answer', response_text, homepage_url)] 
                     else:
@@ -605,12 +738,189 @@ def get_specific_list_response(query):
     
     return None
 
+def get_detailed_info_for_service(query):
+    """
+    Attempts to find specific details (features, benefits, applications, tools, overview) 
+    for a named service/product by traversing the structured_content in scraped_content.json.
+    """
+    global model, corpus_embeddings, corpus_texts, corpus_urls, service_page_map, scraped_data
+    
+    if model is None or corpus_embeddings is None or len(corpus_texts) == 0:
+        app_logger.warning("Model/Embeddings not fully initialized. Attempting to load/regenerate.")
+        load_or_generate_embeddings() 
+        if model is None or corpus_embeddings is None or len(corpus_texts) == 0:
+            app_logger.error("Failed to load/regenerate model or embeddings. Cannot perform targeted search.")
+            return [('Answer', 'The chatbot is still initializing or encountered a critical error loading its knowledge. Please try again in a moment.')]
+
+    query_lower = query.lower()
+    
+    target_url = None
+    matched_service_keyword = None
+    for keyword, url in service_page_map.items():
+        # Check for full keyword match first, then partial if query is longer
+        if keyword == query_lower:
+            target_url = url
+            matched_service_keyword = keyword
+            break
+        elif len(query_lower) > 5 and keyword in query_lower: # Prioritize more specific matches for longer queries
+            target_url = url
+            matched_service_keyword = keyword
+            break # Take the first reasonable match
+
+    if target_url and target_url in scraped_data:
+        app_logger.info(f"Detected specific query for {target_url}. Attempting structured content extraction.")
+        page_content_data = scraped_data[target_url]
+        structured_content = page_content_data.get('structured_content', []) 
+
+        structured_query_keywords = {
+            "features": ["key features", "features", "capabilities", "functionalities", "what it does"],
+            "benefits": ["benefits", "advantages", "perks", "why choose", "value proposition"],
+            "applications": ["applications", "use cases", "implementation", "scenarios", "where it applies"],
+            "tools": ["tools", "technologies", "platforms", "stack used"],
+            "overview": ["overview", "introduction", "what is", "about", "about this", "description"] 
+        }
+
+        extracted_details = []
+        response_type_key = "" 
+        main_section_heading_text = "" 
+
+        # First, try to find a specific section (features, benefits, etc.)
+        for key, keywords_list in structured_query_keywords.items():
+            if any(kw in query_lower for kw in keywords_list):
+                for i, section in enumerate(structured_content):
+                    normalized_h = _normalize_text_for_alias(section.get("heading_text", ""))
+                    if any(kw in normalized_h for kw in keywords_list) and section.get("tag", "").startswith('h'):
+                        main_section_heading_text = section.get("heading_text", "")
+                        parent_heading_level = int(section.get("tag")[1])
+                        
+                        extracted_details = _get_section_and_sub_content(structured_content, i, parent_heading_level)
+                        response_type_key = key
+                        break
+                if extracted_details:
+                    break
+        
+        # If no specific section (features, benefits) was found, try to extract a general overview
+        if not extracted_details and matched_service_keyword:
+            app_logger.info(f"No specific section found for '{query_lower}'. Attempting to find general overview.")
+            # Find the main heading for the service/product on its page
+            for i, section in enumerate(structured_content):
+                normalized_h = _normalize_text_for_alias(section.get("heading_text", ""))
+                
+                # Broaden the match for overview to catch main page titles and primary H1/H2s
+                is_main_page_heading = (normalized_h == _normalize_text_for_alias(page_content_data.get('page_title', '')) or \
+                                        normalized_h == matched_service_keyword or \
+                                        (section.get('tag') in ['h1', 'h2'] and matched_service_keyword in normalized_h))
+                
+                if is_main_page_heading:
+                    # Try to extract initial paragraphs directly following this main service heading
+                    initial_overview_paragraphs = []
+                    current_idx = i + 1
+                    while current_idx < len(structured_content):
+                        element = structured_content[current_idx]
+                        element_tag = element.get("tag", "")
+                        element_heading_text = _normalize_text_for_alias(element.get("heading_text", ""))
+                        element_level = int(element_tag[1]) if element_tag.startswith('h') else 99
+
+                        # Stop if we hit another significant heading (H1/H2/H3) or a new major section
+                        if element_tag.startswith('h') and (element_level <= 3 or element_heading_text in MAJOR_SECTION_KEYWORDS):
+                            break
+                        
+                        if element_tag == 'p' or element_tag == 'li':
+                            for p_text in element.get("content_paragraphs", []):
+                                if p_text.strip():
+                                    initial_overview_paragraphs.append(p_text.strip())
+                        
+                        # Collect maximum of 3-5 overview paragraphs to keep it concise
+                        if len(initial_overview_paragraphs) >= 3: # Limit overview length
+                            break
+                        current_idx += 1
+                    
+                    if initial_overview_paragraphs:
+                        extracted_details = initial_overview_paragraphs
+                        response_type_key = "overview"
+                        # Set main_section_heading_text for overview to be the service name/title
+                        main_section_heading_text = page_content_data.get('page_title', matched_service_keyword)
+                        if main_section_heading_text.lower().startswith('itech software group'):
+                             main_section_heading_text = main_section_heading_text[len('itech software group'):].strip()
+                        if not main_section_heading_text: # Fallback to matched service keyword if title is just "iTech Software Group"
+                            main_section_heading_text = matched_service_keyword.title()
+                        break
+
+
+        if extracted_details:
+            detail_list_text = "\n".join([f"- {item.strip()}" for item in extracted_details if item.strip()])
+            
+            # Special formatting for "Here's a key point:"
+            if response_type_key in ["benefits", "features"]:
+                response_text = f"Here's a key point: {main_section_heading_text}\n{detail_list_text}"
+            elif response_type_key == "overview":
+                 response_text = f"Here's an overview of {main_section_heading_text}:\n{detail_list_text}"
+            else:
+                response_text = f"Here are some {response_type_key} for {matched_service_keyword}:\n{detail_list_text}"
+            
+            return [('Answer', response_text, target_url)] # Return URL here
+        
+        app_logger.info(f"Structured extraction failed or was empty for '{query}' on {target_url}. Falling back to semantic search on the page.")
+        
+        # Fallback to semantic search on the specific page if structured extraction fails
+        target_indices = [i for i, url in enumerate(corpus_urls) if url == target_url]
+        
+        if not target_indices:
+            app_logger.warning(f"No embeddings found for specific page: {target_url} for semantic fallback.")
+            return None 
+
+        try:
+            page_specific_embeddings = corpus_embeddings[target_indices]
+            page_specific_texts = [corpus_texts[i] for i in target_indices]
+
+            query_embedding = model.encode(query, convert_to_tensor=True)
+            
+            cosine_scores = util.cos_sim(query_embedding, page_specific_embeddings)[0]
+            
+            top_k_candidates_page = min(10, len(page_specific_texts)) 
+            top_results_page = torch.topk(cosine_scores, k=top_k_candidates_page)
+
+            best_snippet_info = None
+            
+            for score, idx in zip(top_results_page[0], top_results_page[1]):
+                candidate_text = page_specific_texts[idx]
+                is_substantial = len(candidate_text.split()) > 15 
+                
+                # Prioritize content that is not a generic heading if other options exist
+                normalized_candidate = _normalize_text_for_alias(candidate_text)
+                is_generic_heading = any(kw in normalized_candidate for kw in ["features", "benefits", "applications", "tools", "overview"]) and len(normalized_candidate.split()) < 4
+
+                if score > 0.48 and not (best_snippet_info and not is_substantial and is_generic_heading): # Don't take a generic heading if we have something substantial
+                    if best_snippet_info is None or \
+                       (is_substantial and not best_snippet_info['is_substantial']) or \
+                       (score > best_snippet_info['score'] and (is_substantial == best_snippet_info['is_substantial'])) or \
+                       (score == best_snippet_info['score'] and is_substantial and len(candidate_text) > len(best_snippet_info['text'])):
+                        best_snippet_info = {
+                            'score': score,
+                            'text': candidate_text,
+                            'url': target_url,
+                            'is_substantial': is_substantial
+                        }
+            
+            if best_snippet_info and best_snippet_info['score'] > 0.45: 
+                short_answer = best_snippet_info['text'][:500] + ('...' if len(best_snippet_info['text']) > 500 else '')
+                return [('Answer', f"{short_answer} (Source: {best_snippet_info['url']})")]
+            else: 
+                app_logger.info(f"Targeted semantic search for '{query}' on {target_url} found no suitable answer. Returning None.")
+                return None
+
+        except Exception as e:
+            app_logger.error(f"Error during targeted semantic search for '{query}': {e}")
+            return [('Error', 'An error occurred during the search for specific details. Please try again later.', None)]
+
+    return None 
+
 def search_content(query, max_results=1, max_length=500): 
     """
     Performs a general semantic search on the entire corpus.
     It aims to find the single most relevant and substantial answer.
     """
-    global model, corpus_embeddings, corpus_texts, corpus_urls
+    global model, corpus_embeddings, corpus_texts, corpus_urls, scraped_data
 
     if model is None or corpus_embeddings is None or len(corpus_texts) == 0:
         app_logger.warning("Model/Embeddings not fully initialized during search request. Attempting to load/regenerate.")
@@ -633,14 +943,12 @@ def search_content(query, max_results=1, max_length=500):
         sorted_indices = top_results[1][top_results[0].argsort(descending=True)]
         sorted_scores = top_results[0][top_results[0].argsort(descending=True)]
 
-        score_threshold = 0.40 # Adjusted to be slightly more lenient for general queries
+        score_threshold = 0.40 
 
         query_lower = query.lower()
         is_benefits_query = "benefits of" in query_lower or "advantages of" in query_lower or query_lower == "benefits" or query_lower == "advantages"
         is_features_query = "features of" in query_lower or "functionalities of" in query_lower or "capabilities of" in query_lower or query_lower == "features" or query_lower == "functionalities" or query_lower == "capabilities"
         
-        # Modified the is_definition_query to be more flexible
-        # It now explicitly checks for "what is", "what is mean by", "define", or "explain" at the beginning of the query
         is_definition_query = re.search(r'^(what is|what is mean by|define|explain)\s+', query_lower) is not None
 
         best_definitional_snippet = None
@@ -659,14 +967,8 @@ def search_content(query, max_results=1, max_length=500):
             original_text = corpus_texts[idx]
             source_url = corpus_urls[idx]
 
-            # Prioritize direct definitions for definitional queries
-            # Increased score threshold for direct definitional snippets
-            if is_definition_query and definitional_term:
-                # Check if the original text contains the definitional term AND has a good score
-                # AND is relatively concise (like a definition). Also check if it's a paragraph or extracted text.
-                if definitional_term in original_text.lower() and score > 0.75 and len(original_text.split()) < 75: # Increased word limit for definition
-                    # Further check if this snippet comes from a paragraph or the main extracted text,
-                    # to avoid picking up short headings as definitions.
+            if is_definition_query and definitional_term: # CRITICAL FIX: Changed `best_definitional_snippet` to `definitional_term`
+                if definitional_term in original_text.lower() and score > 0.75 and len(original_text.split()) < 75:
                     page_content = scraped_data.get(source_url, {})
                     is_paragraph_or_extracted_text = False
                     if original_text in page_content.get('paragraphs', []) or original_text == page_content.get('extracted_text', '').strip():
@@ -682,11 +984,10 @@ def search_content(query, max_results=1, max_length=500):
                             }
                             app_logger.info(f"Found potential best definitional snippet: '{original_text[:50]}...' (Score: {score})")
             
-            # General snippet selection logic
             if score < score_threshold:
                 continue 
             
-            is_substantial_text = len(original_text.split()) > 8 # Adjusted minimum words for substantiality
+            is_substantial_text = len(original_text.split()) > 8 
 
             current_best_for_url = results_by_url.get(source_url)
 
@@ -751,11 +1052,9 @@ def search_content(query, max_results=1, max_length=500):
                 reverse=True 
             )
         
-        # --- Final Answer Construction Logic ---
         if is_definition_query and best_definitional_snippet:
             app_logger.info(f"Prioritizing best definitional snippet for query. Score: {best_definitional_snippet['score']}")
             answer_text = best_definitional_snippet['text']
-            # Trim if very long but still a definition
             if len(answer_text.split()) > 100: 
                 sentences = re.split(r'(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|\!)\s', answer_text)
                 answer_text = " ".join(sentences[:min(len(sentences), 3)]) 
@@ -773,14 +1072,12 @@ def search_content(query, max_results=1, max_length=500):
                 combined_texts = [best_snippet_info['text']]
                 combined_urls = {best_snippet_info['url']}
 
-                # Attempt to combine more snippets if the initial best is short or query is broad
                 if len(best_snippet_info['text'].split()) < 30 or len(query.split()) < 3:
                     for i in range(1, min(len(sorted_best_snippets), 3)): 
                         current_snippet = sorted_best_snippets[i]
-                        # Only add if it's substantial, not from the same URL (unless it's the only other option), and highly relevant
                         if len(current_snippet['text'].split()) > 5 and \
                            current_snippet['url'] != best_snippet_info['url'] and \
-                           current_snippet['score'] > (best_snippet_info['score'] * 0.7): # Score must be at least 70% of the top snippet
+                           current_snippet['score'] > (best_snippet_info['score'] * 0.7):
                             combined_texts.append(current_snippet['text'])
                             combined_urls.add(current_snippet['url'])
                             if len(combined_texts) >= max_results: 
@@ -854,7 +1151,7 @@ def search_route():
 
     # The original get_detailed_info_for_service was not structured to return URL
     # So if it's still being called, it needs to be updated to match the new return format
-    # For now, I'm assuming search_content will handle most cases and this might be less critical.
+    # For now, I'm commenting it out to rely on get_specific_list_response and search_content.
     # If it's intended to be used, it should also return [('Type', content, url)]
     # As per previous conversation, this function might have been a legacy from an earlier iteration.
     # For now, I'm commenting it out to rely on get_specific_list_response and search_content.
