@@ -298,7 +298,7 @@ def load_or_generate_embeddings():
             try:
                 app_logger.info("Model was None, loading SentenceTransformer model 'all-MiniLM-L6-v2' after loading embeddings...")
                 # Load model from the bundled directory
-                model = SentenceTransformer('all-MiniLM-L6-v2')
+                model = SentenceTransformer(str(BASE_DIR / 'all-MiniLM-L6-v2'))
                 app_logger.info("SentenceTransformer model loaded successfully (after embeddings).")
             except Exception as e:
                 app_logger.error(f"Failed to load SentenceTransformer model after embeddings: {e}")
@@ -376,7 +376,7 @@ def load_or_generate_embeddings():
     try:
         if model is None:
             app_logger.info("Loading SentenceTransformer model 'all-MiniLM-L6-v2' for generation...")
-            model = SentenceTransformer( 'all-MiniLM-L6-v2')
+            model = SentenceTransformer(str(BASE_DIR / 'all-MiniLM-L6-v2'))
             app_logger.info("SentenceTransformer model loaded successfully.")
         else:
             app_logger.info("SentenceTransformer model already loaded, reusing for generation.")
