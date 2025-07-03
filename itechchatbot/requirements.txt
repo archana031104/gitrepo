@@ -3,17 +3,17 @@ gunicorn==23.0.0
 requests==2.32.3
 beautifulsoup4==4.13.4
 lxml==5.4.0
-# Deep downgrade of sentence-transformers and transformers to try and bypass compilation issues
-sentence-transformers==0.4.1
-torch==2.6.0
-torchvision==0.21.0
+# Extreme downgrade of core ML libraries to try and bypass compilation issues
+sentence-transformers==0.2.0
+torch==1.6.0 # sentence-transformers 0.2.0 requires torch>=1.6.0
+torchvision==0.7.0 # Compatible with torch==1.6.0
 urllib3==2.4.0
 numpy==1.26.4
-scipy==1.15.3
+scipy==1.15.3 # Keep this as it was compatible with Python 3.13.4 and had a wheel
 MarkupSafe==2.1.5
 Jinja2==3.1.4
 itsdangerous==2.2.0
 Werkzeug==3.0.3
 Flask-Cors==4.0.1
-transformers==3.5.1
-huggingface-hub==0.10.0
+transformers==2.2.0 # Compatible with sentence-transformers 0.2.0
+huggingface-hub==0.1.0 # Very old, but might be compatible with older transformers
