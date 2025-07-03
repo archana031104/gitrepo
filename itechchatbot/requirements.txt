@@ -14,7 +14,6 @@ Jinja2==3.1.4
 itsdangerous==2.2.0
 Werkzeug==3.0.3
 Flask-Cors==4.0.1
-# Downgraded transformers to avoid tokenizers compilation issue
-transformers==4.10.0
+# Downgraded transformers to a much older version to try and avoid tokenizers compilation issue
+transformers==3.5.1
 huggingface-hub==0.10.0
-# Removed explicit tokenizers pin, let transformers handle it
