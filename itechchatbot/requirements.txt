@@ -5,9 +5,10 @@ beautifulsoup4==4.13.4
 lxml==5.4.0
 sentence-transformers==2.2.2
 torch==2.5.0
+# Pin torchvision to be compatible with torch==2.5.0
+torchvision==0.16.0
 urllib3==2.4.0
 numpy==1.26.4
-# Updated scipy to a version compatible with Render's Python 3.13.4
 scipy==1.15.3
 MarkupSafe==2.1.5
 Jinja2==3.1.4
