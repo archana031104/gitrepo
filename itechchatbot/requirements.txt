@@ -7,12 +7,12 @@ sentence-transformers==2.2.2
 torch==2.5.0
 urllib3==2.4.0
 numpy==1.26.4
-scipy==1.13.1
+# Updated scipy to a version compatible with Render's Python 3.13.4
+scipy==1.15.3
 MarkupSafe==2.1.5
 Jinja2==3.1.4
 itsdangerous==2.2.0
 Werkzeug==3.0.3
 Flask-Cors==4.0.1
 transformers==4.18.0
-# Updated huggingface-hub to 0.10.0 for download URL fix
 huggingface-hub==0.10.0
